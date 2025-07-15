@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>🎮 Juego: Detective de Modelos Mixtos</h2>
+  <form method="POST">
+    {% for p in preguntas %}
+      <div class="mt-4">
+        <h5>{{ loop.index }}. {{ p.pregunta }}</h5>
+        {% for opcion in p.opciones %}
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="preg_{{ loop.index0 }}" value="{{ opcion }}" required>
+            <label class="form-check-label">{{ opcion }}</label>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    <button class="btn btn-primary mt-4">Enviar respuestas</button>
+  </form>
+</div>
+{% endblock %}

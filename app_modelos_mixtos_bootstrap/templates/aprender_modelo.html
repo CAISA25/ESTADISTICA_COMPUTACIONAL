@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Aprender Modelos Mixtos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mt-4">¿Qué es un Modelo Mixto?</h2>
+    <p>Un <strong>modelo mixto</strong> combina efectos fijos y aleatorios. Se utiliza cuando los datos tienen estructura jerárquica o repetida, como estudiantes dentro de aulas o mediciones repetidas de un mismo individuo.</p>
+
+    <h4>📌 Estructura General:</h4>
+    <pre><code>Y = Xβ + Zγ + ε</code></pre>
+    <ul>
+        <li><strong>Xβ</strong>: efectos fijos (variables independientes comunes)</li>
+        <li><strong>Zγ</strong>: efectos aleatorios (variabilidad entre grupos)</li>
+        <li><strong>ε</strong>: error</li>
+    </ul>
+
+    <h4>🎯 ¿Cuándo se usa?</h4>
+    <ul>
+        <li>Cuando hay datos agrupados (por ejemplo: estudiantes en colegios)</li>
+        <li>Cuando hay mediciones repetidas de los mismos sujetos</li>
+        <li>Cuando se quiere modelar tanto la media como la variabilidad entre grupos</li>
+    </ul>
+
+    <h4>📊 Ejemplo aplicado</h4>
+    <p>Estudiamos la relación entre el rendimiento (Y) y horas de estudio (X1) y motivación (X2), considerando como <strong>grupo aleatorio</strong> la escuela.</p>
+    <p>Fórmula: <code>Y ~ X1 + X2</code> con <code>grupo = Escuela</code></p>
+
+    <h4>🧪 Diferencias entre modelos:</h4>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Modelo</th>
+                <th>Características</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Regresión Lineal</td>
+                <td>No considera estructura de grupos</td>
+            </tr>
+            <tr>
+                <td>Modelo Mixto</td>
+                <td>Incluye variabilidad entre grupos como efecto aleatorio</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h4>📚 Recursos recomendados:</h4>
+    <ul>
+        <li><a href="https://www.youtube.com/watch?v=4vGiHC35j9s" target="_blank">Video explicativo de modelos mixtos</a></li>
+        <li><a href="https://stats.idre.ucla.edu/other/mult-pkg/introduction-to-linear-mixed-models/" target="_blank">UCLA - Mixed Models</a></li>
+        <li><a href="https://towardsdatascience.com/mixed-effects-models-in-python-using-statsmodels-928d981e113" target="_blank">Tutorial práctico con Python</a></li>
+    </ul>
+</div>
+{% endblock %}
