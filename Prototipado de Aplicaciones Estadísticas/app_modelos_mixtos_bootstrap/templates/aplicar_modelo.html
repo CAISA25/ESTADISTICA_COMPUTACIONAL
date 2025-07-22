@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Aplicar el Modelo{% endblock %}
+{% block content %}
+<h2>Aplicar Modelo Mixto</h2>
+<form action="/aplicar" method="post" enctype="multipart/form-data" class="mb-4">
+    <div class="mb-3">
+        <label for="archivo" class="form-label">Subir archivo CSV o Excel:</label>
+        <input type="file" name="archivo" class="form-control">
+    </div>
+    <div class="mb-3">
+        <label for="formula" class="form-label">Fórmula (ej. Y ~ X1 + X2):</label>
+        <input type="text" name="formula" class="form-control">
+    </div>
+    <div class="mb-3">
+        <label for="grupo" class="form-label">Nombre de la columna de grupo:</label>
+        <input type="text" name="grupo" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-primary">Aplicar Modelo</button>
+</form>
+
+{% if tabla %}
+<h4>Vista previa de los datos:</h4>
+<div class="table-responsive">
+    {{ tabla|safe }}
+</div>
+{% endif %}
+
+{% if resultado %}
+<h4>Resultado del modelo:</h4>
+<pre>{{ resultado }}</pre>
+{% endif %}
+{% endblock %}

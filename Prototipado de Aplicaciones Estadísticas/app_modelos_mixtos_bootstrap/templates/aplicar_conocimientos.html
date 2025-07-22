@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Aplicar Conocimientos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mt-4">Aplica lo aprendido sobre Modelos Mixtos</h2>
+
+    <h4>🔍 Desafío 1</h4>
+    <p><strong>Pregunta:</strong> ¿Existe relación entre el desempeño académico y el tiempo de estudio, considerando el colegio como grupo?</p>
+    <ul>
+        <li>Variables: <code>desempeño ~ horas_estudio + motivación</code></li>
+        <li>Grupo: <code>colegio</code></li>
+        <li><a href="https://raw.githubusercontent.com/selva86/datasets/master/SchoolExam.csv" target="_blank">Descargar datos de ejemplo</a></li>
+    </ul>
+
+    <h4>🧠 Desafío 2</h4>
+    <p>Sube tu propio archivo CSV con estructura de grupo (ej. empresas, hospitales, colegios) y construye el modelo mixto.</p>
+
+    <form action="/aplicar" method="get">
+        <button type="submit" class="btn btn-success">Ir a Aplicar Modelo</button>
+    </form>
+
+    <h4>✏️ Consejos</h4>
+    <ul>
+        <li>Evita variables que sean combinaciones exactas de otras (multicolinealidad)</li>
+        <li>Verifica que el grupo tenga más de 1 categoría con al menos 2 observaciones</li>
+        <li>Usa <a href="/aprender">la guía teórica</a> si necesitas repasar</li>
+    </ul>
+</div>
+{% endblock %}

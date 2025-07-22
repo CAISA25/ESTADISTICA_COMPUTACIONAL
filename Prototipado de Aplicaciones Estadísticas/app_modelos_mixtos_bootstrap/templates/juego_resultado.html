@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4 text-center">
+  <h2>🎉 ¡Juego completado!</h2>
+  <p>Tu puntaje: <strong>{{ score }}/{{ total }}</strong></p>
+  <p>{% if score == total %}¡Excelente, eres un experto en modelos mixtos!{% elif score > 1 %}¡Muy bien, casi lo tienes!{% else %}Sigue practicando, vas por buen camino.{% endif %}</p>
+  <a href="/juego" class="btn btn-success mt-3">Volver a jugar</a>
+</div>
+{% endblock %}
