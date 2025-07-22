@@ -1,0 +1,386 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.patches import Circle
+import random
+from dataclasses import dataclass
+from typing import List, Tuple
+from enum import Enum
+
+class AntState(Enum):
+    SEARCHING = "searching"
+    CARRYING_FOOD = "carrying_food"
+    FOLLOWING_TRAIL = "following_trail"
+
+@dataclass
+class Position:
+    x: float
+    y: float
+    
+    def distance_to(self, other: 'Position') -> float:
+        return np.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
+    
+    def __add__(self, other: 'Position') -> 'Position':
+        return Position(self.x + other.x, self.y + other.y)
+    
+    def __mul__(self, scalar: float) -> 'Position':
+        return Position(self.x * scalar, self.y * scalar)
+
+class Ant:
+    def __init__(self, position: Position, colony_pos: Position, ant_id: int):
+        self.id = ant_id
+        self.position = position
+        self.colony_position = colony_pos
+        self.state = AntState.SEARCHING
+        self.direction = random.uniform(0, 2 * np.pi)
+        self.speed = 0.5
+        self.has_food = False
+        self.pheromone_strength = 100.0
+        self.trail_memory = []  # Para recordar el camino
+        self.energy = 100.0
+        
+    def move(self, environment: 'Environment'):
+        """Movimiento basado en el estado y estímulos del entorno"""
+        if self.state == AntState.SEARCHING:
+            self._search_behavior(environment)
+        elif self.state == AntState.CARRYING_FOOD:
+            self._return_to_colony(environment)
+        elif self.state == AntState.FOLLOWING_TRAIL:
+            self._follow_pheromone_trail(environment)
+        
+        # Aplicar movimiento
+        dx = np.cos(self.direction) * self.speed
+        dy = np.sin(self.direction) * self.speed
+        new_pos = Position(self.position.x + dx, self.position.y + dy)
+        
+        # Mantener dentro de los límites
+        new_pos.x = max(0, min(environment.width, new_pos.x))
+        new_pos.y = max(0, min(environment.height, new_pos.y))
+        
+        # Guardar posición anterior si lleva comida (para el rastro)
+        if self.state == AntState.CARRYING_FOOD:
+            self.trail_memory.append((self.position.x, self.position.y))
+        
+        self.position = new_pos
+        self.energy -= 0.1
+        
+    def _search_behavior(self, environment: 'Environment'):
+        """Comportamiento de búsqueda: movimiento aleatorio con detección de feromonas"""
+        # Detectar feromonas cercanas
+        pheromone_gradient = environment.get_pheromone_gradient(self.position)
+        
+        if np.linalg.norm(pheromone_gradient) > 0.1:
+            # Seguir gradiente de feromonas
+            self.state = AntState.FOLLOWING_TRAIL
+            gradient_angle = np.arctan2(pheromone_gradient[1], pheromone_gradient[0])
+            self.direction = gradient_angle + random.uniform(-0.3, 0.3)
+        else:
+            # Movimiento aleatorio
+            self.direction += random.uniform(-0.5, 0.5)
+        
+        # Detectar comida
+        food_sources = environment.get_nearby_food(self.position, detection_radius=2.0)
+        if food_sources:
+            closest_food = min(food_sources, key=lambda f: self.position.distance_to(f.position))
+            if self.position.distance_to(closest_food.position) < 1.0:
+                self.has_food = True
+                self.state = AntState.CARRYING_FOOD
+                environment.consume_food(closest_food)
+                # Cambiar dirección hacia la colonia
+                dx = self.colony_position.x - self.position.x
+                dy = self.colony_position.y - self.position.y
+                self.direction = np.arctan2(dy, dx) + random.uniform(-0.2, 0.2)
+    
+    def _return_to_colony(self, environment: 'Environment'):
+        """Comportamiento de retorno: ir a la colonia depositando feromonas"""
+        # Depositar feromonas
+        environment.deposit_pheromone(self.position, self.pheromone_strength)
+        
+        # Dirigirse hacia la colonia
+        dx = self.colony_position.x - self.position.x
+        dy = self.colony_position.y - self.position.y
+        distance_to_colony = np.sqrt(dx**2 + dy**2)
+        
+        if distance_to_colony < 2.0:
+            # Llegó a la colonia
+            self.has_food = False
+            self.state = AntState.SEARCHING
+            self.energy = 100.0  # Recuperar energía
+            self.trail_memory.clear()
+            # Nueva dirección aleatoria para explorar
+            self.direction = random.uniform(0, 2 * np.pi)
+        else:
+            # Continuar hacia la colonia
+            self.direction = np.arctan2(dy, dx) + random.uniform(-0.1, 0.1)
+    
+    def _follow_pheromone_trail(self, environment: 'Environment'):
+        """Seguir rastro de feromonas hacia la comida"""
+        pheromone_gradient = environment.get_pheromone_gradient(self.position)
+        
+        if np.linalg.norm(pheromone_gradient) > 0.05:
+            gradient_angle = np.arctan2(pheromone_gradient[1], pheromone_gradient[0])
+            self.direction = gradient_angle + random.uniform(-0.2, 0.2)
+        else:
+            # No hay rastro claro, volver a búsqueda aleatoria
+            self.state = AntState.SEARCHING
+            self.direction += random.uniform(-0.5, 0.5)
+        
+        # Detectar comida
+        food_sources = environment.get_nearby_food(self.position, detection_radius=2.0)
+        if food_sources:
+            closest_food = min(food_sources, key=lambda f: self.position.distance_to(f.position))
+            if self.position.distance_to(closest_food.position) < 1.0:
+                self.has_food = True
+                self.state = AntState.CARRYING_FOOD
+                environment.consume_food(closest_food)
+                # Cambiar dirección hacia la colonia
+                dx = self.colony_position.x - self.position.x
+                dy = self.colony_position.y - self.position.y
+                self.direction = np.arctan2(dy, dx)
+
+class FoodSource:
+    def __init__(self, position: Position, amount: int = 50):
+        self.position = position
+        self.amount = amount
+        self.initial_amount = amount
+        
+    @property
+    def is_depleted(self) -> bool:
+        return self.amount <= 0
+
+class Environment:
+    def __init__(self, width: int = 50, height: int = 50):
+        self.width = width
+        self.height = height
+        self.pheromone_map = np.zeros((height, width))
+        self.food_sources: List[FoodSource] = []
+        self.evaporation_rate = 0.02
+        self.diffusion_rate = 0.1
+        
+    def add_food_source(self, position: Position, amount: int = 50):
+        """Agregar fuente de comida"""
+        self.food_sources.append(FoodSource(position, amount))
+    
+    def deposit_pheromone(self, position: Position, strength: float):
+        """Depositar feromonas en una posición"""
+        x, y = int(position.x), int(position.y)
+        if 0 <= x < self.width and 0 <= y < self.height:
+            self.pheromone_map[y, x] += strength
+    
+    def get_pheromone_gradient(self, position: Position) -> np.ndarray:
+        """Calcular gradiente de feromonas para navegación"""
+        x, y = int(position.x), int(position.y)
+        
+        if x <= 0 or x >= self.width-1 or y <= 0 or y >= self.height-1:
+            return np.array([0.0, 0.0])
+        
+        # Gradiente simple usando diferencias finitas
+        grad_x = self.pheromone_map[y, x+1] - self.pheromone_map[y, x-1]
+        grad_y = self.pheromone_map[y+1, x] - self.pheromone_map[y-1, x]
+        
+        return np.array([grad_x, grad_y])
+    
+    def get_nearby_food(self, position: Position, detection_radius: float) -> List[FoodSource]:
+        """Detectar fuentes de comida cercanas"""
+        nearby_food = []
+        for food in self.food_sources:
+            if not food.is_depleted and position.distance_to(food.position) <= detection_radius:
+                nearby_food.append(food)
+        return nearby_food
+    
+    def consume_food(self, food_source: FoodSource):
+        """Consumir comida de una fuente"""
+        food_source.amount = max(0, food_source.amount - 1)
+        if food_source.is_depleted:
+            self.food_sources.remove(food_source)
+    
+    def update(self):
+        """Actualizar el entorno: evaporación y difusión de feromonas"""
+        # Evaporación
+        self.pheromone_map *= (1 - self.evaporation_rate)
+        
+        # Difusión simple
+        kernel = np.array([[0.05, 0.1, 0.05],
+                          [0.1, 0.6, 0.1],
+                          [0.05, 0.1, 0.05]])
+        
+        from scipy import ndimage
+        self.pheromone_map = ndimage.convolve(self.pheromone_map, kernel, mode='constant')
+
+class AntColony:
+    def __init__(self, colony_position: Position, num_ants: int = 30):
+        self.colony_position = colony_position
+        self.ants: List[Ant] = []
+        self.food_collected = 0
+        
+        # Crear hormigas
+        for i in range(num_ants):
+            # Posición inicial cerca de la colonia
+            angle = random.uniform(0, 2 * np.pi)
+            radius = random.uniform(0.5, 2.0)
+            ant_pos = Position(
+                colony_position.x + radius * np.cos(angle),
+                colony_position.y + radius * np.sin(angle)
+            )
+            self.ants.append(Ant(ant_pos, colony_position, i))
+    
+    def update(self, environment: Environment):
+        """Actualizar todas las hormigas"""
+        for ant in self.ants:
+            if ant.energy > 0:
+                ant.move(environment)
+                
+                # Contar comida recolectada
+                if (ant.state == AntState.CARRYING_FOOD and 
+                    ant.position.distance_to(self.colony_position) < 2.0):
+                    self.food_collected += 1
+
+# Clase principal para simulación
+class AntColonySimulation:
+    def __init__(self):
+        self.environment = Environment(width=80, height=60)
+        self.colony = AntColony(Position(40, 30), num_ants=50)
+        
+        # Agregar fuentes de comida
+        food_positions = [
+            Position(15, 15),
+            Position(65, 45),
+            Position(20, 50),
+            Position(70, 15)
+        ]
+        
+        for pos in food_positions:
+            self.environment.add_food_source(pos, amount=100)
+        
+        # Configurar visualización
+        self.fig, (self.ax1, self.ax2) = plt.subplots(1, 2, figsize=(15, 6))
+        self.step_count = 0
+        self.food_history = []
+        self.efficiency_history = []
+        
+    def step(self):
+        """Un paso de simulación"""
+        self.environment.update()
+        self.colony.update(self.environment)
+        self.step_count += 1
+        
+        # Registrar estadísticas
+        if self.step_count % 10 == 0:
+            self.food_history.append(self.colony.food_collected)
+            
+            # Calcular eficiencia (comida recolectada por hormiga)
+            efficiency = self.colony.food_collected / len(self.colony.ants)
+            self.efficiency_history.append(efficiency)
+    
+    def visualize(self):
+        """Visualizar el estado actual"""
+        self.ax1.clear()
+        self.ax2.clear()
+        
+        # Panel 1: Visualización espacial
+        # Mapa de feromonas
+        self.ax1.imshow(self.environment.pheromone_map, cmap='Reds', alpha=0.6, 
+                       extent=[0, self.environment.width, 0, self.environment.height])
+        
+        # Fuentes de comida
+        for food in self.environment.food_sources:
+            size = max(50, food.amount * 2)
+            self.ax1.scatter(food.position.x, food.position.y, 
+                           s=size, c='green', marker='s', alpha=0.8, label='Comida')
+        
+        # Colonia
+        self.ax1.scatter(self.colony.colony_position.x, self.colony.colony_position.y,
+                        s=200, c='brown', marker='h', label='Colonia')
+        
+        # Hormigas
+        ant_colors = []
+        ant_x = []
+        ant_y = []
+        
+        for ant in self.colony.ants:
+            ant_x.append(ant.position.x)
+            ant_y.append(ant.position.y)
+            
+            if ant.state == AntState.SEARCHING:
+                ant_colors.append('blue')
+            elif ant.state == AntState.CARRYING_FOOD:
+                ant_colors.append('orange')
+            else:  # FOLLOWING_TRAIL
+                ant_colors.append('purple')
+        
+        self.ax1.scatter(ant_x, ant_y, c=ant_colors, s=20, alpha=0.8)
+        
+        self.ax1.set_xlim(0, self.environment.width)
+        self.ax1.set_ylim(0, self.environment.height)
+        self.ax1.set_title(f'Colonia de Hormigas - Paso {self.step_count}')
+        self.ax1.legend()
+        
+        # Panel 2: Estadísticas
+        if len(self.food_history) > 1:
+            steps = range(0, len(self.food_history) * 10, 10)
+            self.ax2.plot(steps, self.food_history, 'g-', linewidth=2, label='Comida Recolectada')
+            self.ax2.set_xlabel('Pasos de Simulación')
+            self.ax2.set_ylabel('Comida Total Recolectada')
+            self.ax2.set_title('Rendimiento de la Colonia')
+            self.ax2.grid(True, alpha=0.3)
+            self.ax2.legend()
+        
+        plt.tight_layout()
+    
+    def run_simulation(self, steps: int = 1000, display_interval: int = 50):
+        """Ejecutar simulación completa"""
+        print("Iniciando simulación de colonia de hormigas...")
+        print(f"Hormigas: {len(self.colony.ants)}")
+        print(f"Fuentes de comida: {len(self.environment.food_sources)}")
+        
+        for i in range(steps):
+            self.step()
+            
+            if i % display_interval == 0:
+                print(f"Paso {i}: Comida recolectada = {self.colony.food_collected}")
+                self.visualize()
+                plt.pause(0.1)
+        
+        # Resultados finales
+        print("\n=== RESULTADOS FINALES ===")
+        print(f"Pasos totales: {self.step_count}")
+        print(f"Comida total recolectada: {self.colony.food_collected}")
+        print(f"Eficiencia promedio: {self.colony.food_collected / len(self.colony.ants):.2f} comida/hormiga")
+        
+        # Análisis de estados
+        states_count = {'searching': 0, 'carrying_food': 0, 'following_trail': 0}
+        for ant in self.colony.ants:
+            states_count[ant.state.value] += 1
+        
+        print(f"Estados finales de hormigas:")
+        for state, count in states_count.items():
+            print(f"  {state}: {count} hormigas ({count/len(self.colony.ants)*100:.1f}%)")
+        
+        return {
+            'food_collected': self.colony.food_collected,
+            'efficiency': self.colony.food_collected / len(self.colony.ants),
+            'steps': self.step_count,
+            'final_states': states_count
+        }
+
+# Función principal para ejecutar
+def run_ant_colony_simulation():
+    """Ejecutar simulación de colonia de hormigas"""
+    try:
+        from scipy import ndimage
+    except ImportError:
+        print("Instalando scipy para la simulación...")
+        import subprocess
+        subprocess.check_call(['pip', 'install', 'scipy'])
+        from scipy import ndimage
+    
+    # Crear y ejecutar simulación
+    sim = AntColonySimulation()
+    results = sim.run_simulation(steps=500, display_interval=25)
+    
+    return sim, results
+
+# Ejecutar simulación
+if __name__ == "__main__":
+    simulation, results = run_ant_colony_simulation()
+    plt.show()
