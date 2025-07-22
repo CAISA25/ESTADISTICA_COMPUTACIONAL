@@ -1,0 +1,45 @@
+Resumen del Análisis del Coeficiente de Variación en una Distribución Normal
+
+Se simuló una muestra de tamaño n = 500 siguiendo una distribución normal con media teórica μ = 20 y desviación estándar teórica σ = 4, utilizando la función rnorm() de R. Esto permitió evaluar la dispersión relativa de los datos a través del coeficiente de variación (CV).
+
+Estadísticas muestrales obtenidas:
+- Media muestral: 20.138
+- Desviación estándar muestral: 3.891
+- Varianza muestral: 15.14
+- Coeficiente de variación (CV muestral): 19.32%
+
+El CV teórico esperado era del 20%, lo cual se aproxima al valor muestral. La diferencia observada fue de tan solo 0.68%, lo que indica una alta consistencia entre el modelo teórico y la muestra generada.
+
+Interpretación del CV:
+
+Según criterios estadísticos generales:
+- Un CV entre 10% y 20% representa dispersión moderada, lo cual es el caso de esta muestra.
+- Esto implica que la variabilidad de los datos en relación a la media es aceptable para la mayoría de aplicaciones.
+
+Estadísticas adicionales:
+- Mínimo: 9.356
+- Máximo: 32.964
+- Rango: 23.608
+- Mediana: 20.083
+- Rango intercuartílico (RIC): 5.039
+
+Verificación de normalidad y visualización:
+
+Se generaron los siguientes gráficos:
+- Histograma con superposición de la curva teórica normal.
+- Boxplot que mostró simetría y ausencia de valores atípicos extremos.
+- Q-Q plot, que evidenció un buen ajuste a la distribución normal.
+- Gráfico de dispersión, con bandas de ±1 y ±2 desviaciones estándar alrededor de la media muestral.
+
+Intervalo de confianza para la media (95%):
+- Error estándar: 0.174
+- IC 95% para la media: [19.797, 20.479]
+  La media teórica se encuentra dentro del intervalo de confianza, lo cual respalda la calidad de la simulación y la estabilidad de la muestra.
+
+Comparación con contextos reales:
+- Altura humana: CV ≈ 3–5%
+- Peso humano: CV ≈ 15–20%
+- Ingresos: CV ≈ 50–100%
+- Precios de acciones: CV ≈ 20–50%
+
+El CV de esta muestra (19.32%) es comparable al de variables físicas como el peso humano, lo cual refuerza su interpretación como una variabilidad moderada y coherente con fenómenos reales.
